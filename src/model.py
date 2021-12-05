@@ -101,7 +101,8 @@ class ViT(nn.Module):
 
         self.pool = pool
         self.to_latent = nn.Identity()
-
+        
+        ## 수정하기
         self.mlp_head = nn.Sequential(
             nn.LayerNorm(dim),
             nn.Linear(dim, num_classes)
@@ -121,4 +122,4 @@ class ViT(nn.Module):
         x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
 
         x = self.to_latent(x)
-        return self.mlp_head(x)
+        return self.mlp_head(x) ## 수정
