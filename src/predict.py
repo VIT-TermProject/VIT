@@ -3,11 +3,13 @@ import torch.nn as nn
 import numpy as np
 from piq import psnr, ssim
 import time
+import cv2
 
 class Predicter():
-    def __init__(self, model, test_loader):
+    def __init__(self, model, test_loader, save_path):
         self.model = model
-        self.train_loader = test_loader
+        self.test_loader = test_loader
+        self.save_path = save_path
         self.test_loss=[]
         self.psnr=[]
         self.ssim=[]
@@ -29,7 +31,7 @@ class Predicter():
         test_loss = 0
         test_psnr = 0
         test_ssim = 0
-        for batch_input_x, batch_input_y in self.test_loader:
+        for batch_input_x, batch_input_y, name in self.test_loader:
             batch_input_x = batch_input_x.to(device)
             batch_input_y = batch_input_y.to(device)
 
@@ -44,6 +46,13 @@ class Predicter():
             
             test_psnr += metric_psnr.item()
             test_ssim += metric_ssim.item()
+
+            output_images = output.cpu().detach().numpy()
+            output_images = (output_images * 255.0).transpose(0,2,3,1).astype(np.uint8)  # b, c, h, w -> b, h, w, c
+
+            for img in output_images:
+                cv2.imwrite(os.path.join(save_path,name),img)
+
 
         print('test_loss: ', test_loss/len(self.test_loader))
         print('test_psnr: ', test_psnr/len(self.test_loader)) 

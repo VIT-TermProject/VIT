@@ -37,7 +37,7 @@ class Trainer():
             self.model.train()
 
             train_loss = 0
-            for batch_input_x, batch_input_y in self.train_loader:
+            for batch_input_x, batch_input_y, _ in self.train_loader:
                 batch_input_x = batch_input_x.to(device)
                 batch_input_y = batch_input_y.to(device)
                 self.model.zero_grad()
@@ -53,7 +53,7 @@ class Trainer():
             val_loss = 0
             val_psnr = 0
             val_ssim = 0
-            for batch_input_x, batch_input_y in self.valid_loader:
+            for batch_input_x, batch_input_y, _ in self.valid_loader:
                 batch_input_x = batch_input_x.to(device)
                 batch_input_y = batch_input_y.to(device)
 
