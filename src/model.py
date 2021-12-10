@@ -99,8 +99,15 @@ class ViT(nn.Module):
 
         self.transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
 
-        #self.up1 = nn.ConvTranspose2d(2,64,4,2,1)
-        self.out = nn.Conv2d(2,3,kernel_size=3,stride=1,padding=1)  # transformer output shape이 안바뀌네요... deconvolution 쓰자니 더 커지고.. 고민됩니다...
+        self.up1 = nn.ConvTranspose2d(512,256,4,2,1)
+        self.up2 = nn.ConvTranspose2d(256,128,4,2,1)
+        self.up3 = nn.ConvTranspose2d(128,64,4,2,1)
+        self.up4 = nn.ConvTranspose2d(64,32,4,2,1)
+        self.out = nn.Conv2d(32,3,3,1,1)
+        #self.out = nn.Conv2d(2,64,kernel_size=3,stride=1,padding=1)  
+        #self.out = nn.Conv2d(2,32,kernel_size=3,stride=1,padding=1)  
+        #self.out = nn.Conv2d(2,3,kernel_size=3,stride=1,padding=1)  
+        # transformer output shape이 안바뀌네요... deconvolution 쓰자니 더 커지고.. 고민됩니다...
         #self.up1 = nn.ConvTranspose2d(2,64,kernel_size=4,stride=2,padding=1)
 
 
@@ -119,9 +126,12 @@ class ViT(nn.Module):
         x = x[:,1:]
         #x = x.transpose(0,1).contiguous().view(x.size(1), -1, 512)
 
-        x = torch.nn.functional.fold(x.transpose(1,2).contiguous(),64,16,stride=16)  # 1안 patch를 2x16x16로 취급
-        #x = torch.nn.functional.fold(x.transpose(1,2).contiguous(),4,1,stride=1) # 2안 patch를 512x1x1로 취급
-
+        #x = torch.nn.functional.fold(x.transpose(1,2).contiguous(),64,16,stride=16)  # 1안 patch를 2x16x16로 취급
+        x = torch.nn.functional.fold(x.transpose(1,2).contiguous(),4,1,stride=1) # 2안 patch를 512x1x1로 취급
+        x = self.up1(x)
+        x = self.up2(x)
+        x = self.up3(x)
+        x = self.up4(x)
         x = self.out(x)
         return x
 
@@ -130,3 +140,4 @@ if __name__ == "__main__":
     x = torch.FloatTensor(np.zeros((1,3,64,64))) # 1,3,64,64 -> 1, 16, 16x16x3
     net = ViT(image_size=64,patch_size=16,num_classes=1,dim=512,mlp_dim=1024, depth=6, heads=16)
     out = net(x)
+    print(out.shape)

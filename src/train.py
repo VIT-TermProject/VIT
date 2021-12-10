@@ -24,14 +24,15 @@ class Trainer():
             print('No GPU available, using the CPU instead.')
             device = torch.device("cpu")
 
-        self.model.to(device)
+        self.model = self.model.to(device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.learning_rate)
         
         if args.loss_type == 'MSE':
             self.loss_function = nn.MSELoss()
         elif args.loss_type == 'L1':
             self.loss_function = nn.L1Loss()
-
+        
+        print('start train')
         for epoch in range(args.epochs):
             start_time = time.time()
             self.model.train()
@@ -46,6 +47,7 @@ class Trainer():
                 loss = self.loss_function(output, batch_input_y)
                 train_loss += loss.item()
                 loss.backward()
+                #print(loss.item())
                 self.optimizer.step()
 
             ## validation
@@ -62,7 +64,7 @@ class Trainer():
 
                 loss = self.loss_function(output, batch_input_y)
                 val_loss += loss.item()
-                
+                output = torch.clip(output, min=0, max=1)
                 metric_psnr = psnr(output, batch_input_y, data_range=1.)
                 metric_ssim = ssim(output, batch_input_y, data_range=1.)
                 
@@ -71,10 +73,10 @@ class Trainer():
 
             print('epoch: ', epoch, ', time: ', time.time()-start_time)
             print('train_loss: ', train_loss/len(self.train_loader), 'val_loss: ', val_loss/len(self.valid_loader))
-            print('val_psnr: ', np.mean(val_psnr), ', val_ssim: ', np.mean(val_ssim))
+            print('val_psnr: ', val_psnr/len(self.train_loader), ', val_ssim: ', val_ssim/len(self.train_loader))
 
             torch.save({
             'epoch': epoch,
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
-            }, args.checkpoint_path + epoch + '.pth')
+            }, args.checkpoint_path + '/' + str(epoch) + '.pth')
