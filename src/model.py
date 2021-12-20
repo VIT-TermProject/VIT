@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
@@ -81,7 +82,8 @@ class ViT(nn.Module):
         super().__init__()
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(patch_size)
-
+        self.image_height = image_height
+        self.patch_size = patch_size
         assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
 
         num_patches = (image_height // patch_height) * (image_width // patch_width)
@@ -104,6 +106,11 @@ class ViT(nn.Module):
         self.up3 = nn.ConvTranspose2d(128,64,4,2,1)
         self.up4 = nn.ConvTranspose2d(64,32,4,2,1)
         self.out = nn.Conv2d(32,3,3,1,1)
+        #self.out = nn.Sequential(
+        #    nn.Conv2d(128,64,3,1,1),
+        #    nn.ReLU(),
+        #    nn.Conv2d(64,3,kernel_size=1),
+        #)
         #self.out = nn.Conv2d(2,64,kernel_size=3,stride=1,padding=1)  
         #self.out = nn.Conv2d(2,32,kernel_size=3,stride=1,padding=1)  
         #self.out = nn.Conv2d(2,3,kernel_size=3,stride=1,padding=1)  
@@ -125,19 +132,18 @@ class ViT(nn.Module):
         x = self.transformer(x)
         x = x[:,1:]
         #x = x.transpose(0,1).contiguous().view(x.size(1), -1, 512)
-
-        #x = torch.nn.functional.fold(x.transpose(1,2).contiguous(),64,16,stride=16)  # 1안 patch를 2x16x16로 취급
-        x = torch.nn.functional.fold(x.transpose(1,2).contiguous(),4,1,stride=1) # 2안 patch를 512x1x1로 취급
-        x = self.up1(x)
-        x = self.up2(x)
-        x = self.up3(x)
-        x = self.up4(x)
+        x = torch.nn.functional.fold(x.transpose(1,2).contiguous(),4,1,stride=1)  # 1안 patch를 2x16x16로 취급
+        #x = torch.nn.functional.fold(x.transpose(1,2).contiguous(),16,1,stride=1) # 2안 patch를 512x1x1로 취급
+        x = F.relu(self.up1(x))
+        x = F.relu(self.up2(x))
+        x = F.relu(self.up3(x))
+        x = F.relu(self.up4(x))
         x = self.out(x)
         return x
 
 
 if __name__ == "__main__":
     x = torch.FloatTensor(np.zeros((1,3,64,64))) # 1,3,64,64 -> 1, 16, 16x16x3
-    net = ViT(image_size=64,patch_size=16,num_classes=1,dim=512,mlp_dim=1024, depth=6, heads=16)
+    net = ViT(image_size=64,patch_size=4,num_classes=1,dim=512,mlp_dim=1024, depth=6, heads=16)
     out = net(x)
     print(out.shape)

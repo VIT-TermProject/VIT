@@ -26,6 +26,7 @@ class Trainer():
 
         self.model = self.model.to(device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.learning_rate)
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=5, gamma=0.5)
         
         if args.loss_type == 'MSE':
             self.loss_function = nn.MSELoss()
@@ -41,15 +42,15 @@ class Trainer():
             for batch_input_x, batch_input_y, _ in self.train_loader:
                 batch_input_x = batch_input_x.to(device)
                 batch_input_y = batch_input_y.to(device)
-                self.model.zero_grad()
+                self.optimizer.zero_grad()
 
                 output = self.model(batch_input_x)
                 loss = self.loss_function(output, batch_input_y)
                 train_loss += loss.item()
                 loss.backward()
-                #print(loss.item())
+                print(loss.item())
                 self.optimizer.step()
-
+            
             ## validation
             self.model.eval()
             val_loss = 0
@@ -80,3 +81,5 @@ class Trainer():
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             }, args.checkpoint_path + '/' + str(epoch) + '.pth')
+            
+            self.scheduler.step()
